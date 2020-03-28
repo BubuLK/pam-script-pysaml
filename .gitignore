@@ -127,3 +127,26 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# IDE project files
+/.pydevproject
+
+# vim python-mode plugin
+/.ropeproject
+
+# IntelliJ IDEA / PyCharm project files
+/.idea
+/*.iml
+
+# JS/node/npm/web dev files
+node_modules
+npm-debug.log
+
+# OS X metadata files
+*.DS_Store
+
+# Local log/testing data/sources
+/data/
+/log/
+*sandbox.py
+#
