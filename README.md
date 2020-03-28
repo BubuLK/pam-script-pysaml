@@ -61,10 +61,13 @@ is not significant):
 
 #### PAM system configuration
 * create a symlink from `pam_script_auth` to `pam-script-pysaml.py`,
-* configure selected PAM module in `/etc/pam.d` (or `/etc/pam.conf`) like this:
+* get metadata.xml from your IdP and copy them into installation dir
+  (see `idp` parameter above),
+* configure PAM module for selected service in `/etc/pam.d/` (or `/etc/pam.conf`)
+  like this:
 
 ```
-    auth	required	pam_script.so dir=<dir> userid=mail grace=900 [...]
+    auth	required	pam_script.so dir=<dir> user_id=uid grace=900 [...]
 ```
 
 #### Logging
