@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" entityID="https://shib.zcu.cz/idp/shibboleth">
+  <Extensions xmlns="urn:oasis:names:tc:SAML:2.0:metadata">
+    <eduidmd:RepublishRequest xmlns:eduidmd="http://eduid.cz/schema/metadata/1.0">
+      <eduidmd:RepublishTarget>http://edugain.org/</eduidmd:RepublishTarget>
+    </eduidmd:RepublishRequest>
+  </Extensions>
+  <IDPSSODescriptor protocolSupportEnumeration="urn:mace:shibboleth:1.0 urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:2.0:protocol">
+    <Extensions>
+      <shibmd:Scope regexp="false">zcu.cz</shibmd:Scope>
+      <shibmd:Scope regexp="false">gapps.zcu.cz</shibmd:Scope>
+      <mdui:UIInfo xmlns:mdui="urn:oasis:names:tc:SAML:metadata:ui">
+        <mdui:DisplayName xml:lang="en">University of West Bohemia</mdui:DisplayName>
+        <mdui:DisplayName xml:lang="cs">Západočeská univerzita v Plzni</mdui:DisplayName>
+        <mdui:Description xml:lang="en">Identity Provider for University of West Bohemia.</mdui:Description>
+        <mdui:Description xml:lang="cs">Západočeská univerzita v Plzni.</mdui:Description>
+        <mdui:InformationURL xml:lang="en">http://www.zcu.cz/en/</mdui:InformationURL>
+        <mdui:InformationURL xml:lang="cs">http://www.zcu.cz/</mdui:InformationURL>
+      </mdui:UIInfo>
+    </Extensions>
+    <KeyDescriptor use="signing">
+      <ds:KeyInfo>
+        <ds:X509Data>
+          <ds:X509Certificate>MIIDFzCCAf+gAwIBAgIUCDrOzILCIUYr3TrnUQPEsHWa+wMwDQYJKoZIhvcNAQEF
+BQAwFjEUMBIGA1UEAxMLc2hpYi56Y3UuY3owHhcNMTIwNjE1MTIwNzE1WhcNMzIw
+NjE1MTIwNzE1WjAWMRQwEgYDVQQDEwtzaGliLnpjdS5jejCCASIwDQYJKoZIhvcN
+AQEBBQADggEPADCCAQoCggEBAIZDgPqv9Pzl5boNk7nXJpoxPt4AVs++zbuJNPU8
+kJWFdeXrjB2m2wGSDm+1X33NrnkGs2LrNqSqjfXdoPM7UwBKUzqZx6qNSsDssrKt
+S3vK8RfyOss31NXhY6tgG4nw1YhO4324spqFIA7oXMR/QxuPXHnRxUMZjln0XgeM
+hAeHcJJYU/c8ZbLPr4M7eVeQSnzccvkdIc1Hil5qpsdpvb48yvUCOKl7Flm/iVLM
+OKlj1i4IKGSQNd8cUnZZukWK62/H1pr7Al6368zJqkYKvUJbRNfRiXEeV3c9pcg/
+/bx/j66ebUulE4A4ITpE5oQvMpgx/1w2h76mY9rHzTHBMp0CAwEAAaNdMFswOgYD
+VR0RBDMwMYILc2hpYi56Y3UuY3qGImh0dHBzOi8vc2hpYi56Y3UuY3ovaWRwL3No
+aWJib2xldGgwHQYDVR0OBBYEFHLlm9ZAYoCIoT1NQsdo7sPzShFWMA0GCSqGSIb3
+DQEBBQUAA4IBAQAHtEngv7KaSiRJxFaLn3VdzH6f3SC4xNGKTPyGVq0pBrwUitf4
+kMl17K3Hg73ef1D+wInl3+9IuoCDsTH2wKKD3tUSZsL+xgekRGiIu3LIFcoa+U+o
+5n1nnfZ7xfvh8lgmsRZ7TVC3dXFl9wU+BmsVvOWEjneOA5oZQ2MUkKDC9+5sh6jV
+BXl4hMGBSLfs19/xa81PR7nkC9e6N0ri6nq6rT/SwoXXsAxHMHRz9M9gSq5lwxYO
+d+orcDxYVF3fdNbigr2b4qcgMeVygTsdcroU8EncIRMRLw0Wdb5Pk86KmCj74dRq
+C9OOk807XNhUC499735YXOv2kFUlCx5mZeOk</ds:X509Certificate>
+        </ds:X509Data>
+      </ds:KeyInfo>
+    </KeyDescriptor>
+    <ArtifactResolutionService Binding="urn:oasis:names:tc:SAML:1.0:bindings:SOAP-binding" Location="https://shib.zcu.cz:8443/idp/profile/SAML1/SOAP/ArtifactResolution" index="1"/>
+    <ArtifactResolutionService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://shib.zcu.cz:8443/idp/profile/SAML2/SOAP/ArtifactResolution" index="2"/>
+    <NameIDFormat>urn:mace:shibboleth:1.0:nameIdentifier</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</NameIDFormat>
+    <SingleSignOnService Binding="urn:mace:shibboleth:1.0:profiles:AuthnRequest" Location="https://shib.zcu.cz/idp/profile/Shibboleth/SSO"/>
+    <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://shib.zcu.cz/idp/profile/SAML2/POST/SSO"/>
+    <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign" Location="https://shib.zcu.cz/idp/profile/SAML2/POST-SimpleSign/SSO"/>
+    <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://shib.zcu.cz/idp/profile/SAML2/Redirect/SSO"/>
+  </IDPSSODescriptor>
+  <AttributeAuthorityDescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:2.0:protocol">
+    <Extensions>
+      <shibmd:Scope regexp="false">zcu.cz</shibmd:Scope>
+    </Extensions>
+    <KeyDescriptor use="encryption">
+      <ds:KeyInfo>
+        <ds:X509Data>
+          <ds:X509Certificate>MIIDFzCCAf+gAwIBAgIUCDrOzILCIUYr3TrnUQPEsHWa+wMwDQYJKoZIhvcNAQEF
+BQAwFjEUMBIGA1UEAxMLc2hpYi56Y3UuY3owHhcNMTIwNjE1MTIwNzE1WhcNMzIw
+NjE1MTIwNzE1WjAWMRQwEgYDVQQDEwtzaGliLnpjdS5jejCCASIwDQYJKoZIhvcN
+AQEBBQADggEPADCCAQoCggEBAIZDgPqv9Pzl5boNk7nXJpoxPt4AVs++zbuJNPU8
+kJWFdeXrjB2m2wGSDm+1X33NrnkGs2LrNqSqjfXdoPM7UwBKUzqZx6qNSsDssrKt
+S3vK8RfyOss31NXhY6tgG4nw1YhO4324spqFIA7oXMR/QxuPXHnRxUMZjln0XgeM
+hAeHcJJYU/c8ZbLPr4M7eVeQSnzccvkdIc1Hil5qpsdpvb48yvUCOKl7Flm/iVLM
+OKlj1i4IKGSQNd8cUnZZukWK62/H1pr7Al6368zJqkYKvUJbRNfRiXEeV3c9pcg/
+/bx/j66ebUulE4A4ITpE5oQvMpgx/1w2h76mY9rHzTHBMp0CAwEAAaNdMFswOgYD
+VR0RBDMwMYILc2hpYi56Y3UuY3qGImh0dHBzOi8vc2hpYi56Y3UuY3ovaWRwL3No
+aWJib2xldGgwHQYDVR0OBBYEFHLlm9ZAYoCIoT1NQsdo7sPzShFWMA0GCSqGSIb3
+DQEBBQUAA4IBAQAHtEngv7KaSiRJxFaLn3VdzH6f3SC4xNGKTPyGVq0pBrwUitf4
+kMl17K3Hg73ef1D+wInl3+9IuoCDsTH2wKKD3tUSZsL+xgekRGiIu3LIFcoa+U+o
+5n1nnfZ7xfvh8lgmsRZ7TVC3dXFl9wU+BmsVvOWEjneOA5oZQ2MUkKDC9+5sh6jV
+BXl4hMGBSLfs19/xa81PR7nkC9e6N0ri6nq6rT/SwoXXsAxHMHRz9M9gSq5lwxYO
+d+orcDxYVF3fdNbigr2b4qcgMeVygTsdcroU8EncIRMRLw0Wdb5Pk86KmCj74dRq
+C9OOk807XNhUC499735YXOv2kFUlCx5mZeOk</ds:X509Certificate>
+        </ds:X509Data>
+      </ds:KeyInfo>
+    </KeyDescriptor>
+    <AttributeService Binding="urn:oasis:names:tc:SAML:1.0:bindings:SOAP-binding" Location="https://shib.zcu.cz:8443/idp/profile/SAML1/SOAP/AttributeQuery"/>
+    <AttributeService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://shib.zcu.cz:8443/idp/profile/SAML2/SOAP/AttributeQuery"/>
+    <NameIDFormat>urn:mace:shibboleth:1.0:nameIdentifier</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
+    <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</NameIDFormat>
+  </AttributeAuthorityDescriptor>
+  <Organization>
+    <OrganizationName xml:lang="en">University of West Bohemia</OrganizationName>
+    <OrganizationName xml:lang="cs">Západočeská univerzita v Plzni</OrganizationName>
+    <OrganizationDisplayName xml:lang="en">University of West Bohemia</OrganizationDisplayName>
+    <OrganizationDisplayName xml:lang="cs">Západočeská univerzita v Plzni</OrganizationDisplayName>
+    <OrganizationURL xml:lang="en">http://www.zcu.cz/</OrganizationURL>
+    <OrganizationURL xml:lang="cs">http://www.zcu.cz/</OrganizationURL>
+  </Organization>
+  <ContactPerson contactType="technical">
+    <GivenName>Petr</GivenName>
+    <SurName>Grolmus</SurName>
+    <EmailAddress>indy@civ.zcu.cz</EmailAddress>
+  </ContactPerson>
+</EntityDescriptor>
