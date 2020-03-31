@@ -25,7 +25,7 @@
 # idp               - trusted IdPs metadata file (CSV multi-value)
 # log_level         - logging severity
 # only_from         - trusted IdPs host names (CSV multi-value)
-# trusted_sp        - entityID of trusted SPs (CSV multi-value)
+# trusted_sp        - entityID of trusted SP
 # user_id           - Attribute element representing validated username
 #
 
@@ -106,12 +106,11 @@ def config_logging(severity):
     log_stream_handler.setFormatter(log_formatter)
     log.addHandler(log_stream_handler)
 
-    # ToDo: we probably do not need this in production
     # Temporary file handler
-    # log_file_handler = logging.FileHandler("log/pam-script-pysaml.log")
-    # log_file_handler.setLevel(log_level)
-    # log_file_handler.setFormatter(log_formatter)
-    # log.addHandler(log_file_handler)
+    log_file_handler = logging.FileHandler("log/pam-script-pysaml.log")
+    log_file_handler.setLevel(log_level)
+    log_file_handler.setFormatter(log_formatter)
+    log.addHandler(log_file_handler)
 
     return log
 
@@ -429,7 +428,7 @@ def main():
             "SAML assertion time validity not checked: disabled by "
             "check_timeframe=False parameter.")
 
-    logger.debug("SAML assertion verified: PAM_SUCCESS exit.")
+    logger.info(f"SAML assertion verified OK: user={user} allowed to login.")
     sys.exit(PAM_SUCCESS)
 
 

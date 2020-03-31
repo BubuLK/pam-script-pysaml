@@ -13,17 +13,22 @@ Ensure you have met the following basic requirements:
 
 ### Installation
 * clone this repository to any appropriate place (e.g. `/usr/share/libpam-script`):
-```commandline
+    ```commandline
     git clone https://github.com/BubuLK/pam-script-pysaml
-```
-* install Python dependencies (if necessary):
-```commandline
+    ```
+* install OS dependencies (this may vary depending on OS version), for Debian
+  install `zlib` library:
+    ```commandline
+  apt install zlib1g-dev
+    ```
+* install Python dependencies:
+    ```commandline
     pip3 install -r requirements.txt
-```
+    ```
 * run a simple tests suite and ensure all tests passed:
-```commandline
+    ```commandline
     pytest -v tests/
-```
+    ```
 * configure PAM system (see bellow).
 
 ### Configuration
@@ -48,13 +53,13 @@ is not significant):
     (for clock skew or longer authentication validity). Default: `600`,
 * `check_timeframe`: if `False`, validation of the assertion timeframe 
     is disabled (not recommended). Default: `True`,
-* `idp`: path to IdP metadata file which signing certificates for assertion
-    signature verification are extracted from (multiple values allowed).
-    Signature verification failed, if none is given,
+* `idp`: path(s) to IdP metadata file(s) which signing certificates for assertion
+    signature verification are extracted from (multiple CSV values allowed).
+    Required to validate assertion signature,
 * `log_level`: logging `<severity>`. Default: `WARNING`.
 * `only_from`: list of IP/host names which can authenticate
-    (multiple values allowed),
-* `trusted_sp`: entityID of SP which should be trusted. All are allowed,
+    (multiple CSV values allowed),
+* `trusted_sp`: entityID of SP which should be trusted. Any SP is allowed,
     if none is given (not recommended),
 * `userid`: name of SAML attribute which contains the username (login). Value
    of this attribute will be matched against the username passed. Default: `uid`,
@@ -66,9 +71,9 @@ is not significant):
 * configure PAM module for selected service in `/etc/pam.d/` (or `/etc/pam.conf`)
   like this:
 
-```
+    ```
     auth	required	pam_script.so dir=<dir> user_id=uid grace=900 [...]
-```
+    ```
 
 #### Logging
 This module use `stdout` stream to logging all information. You can use standard
@@ -81,7 +86,7 @@ This work is primary focused (and tested) on SSO environment configured with
 as SP and the [Dovecot MDA](http://dovecot.org/)
 configured to use PAM authentication (with SAML assertion given as password).
 
-However everything should work fine on any other decent configuration.
+However everything should work fine for any other similar setup.
 
 
 ## References
@@ -91,7 +96,8 @@ However everything should work fine on any other decent configuration.
 
 ## Contributing
 * reporting bug/issues: https://github.com/BubuLK/pam-script-pysaml/issues,
-* contributing changes: use PR (Pull Request) on your forked repository,
+* contributing code: fork this repository, make proposed changes and use
+  PR (Pull Request),
 * with any other questions contact author: [L. Kejzlar](mailto:kejzlar@gmail.com) 
 
 
