@@ -107,7 +107,10 @@ def config_logging(severity):
     log.addHandler(log_stream_handler)
 
     # Temporary file handler
-    log_file_handler = logging.FileHandler("log/pam-script-pysaml.log")
+    log_file_handler = logging.FileHandler(
+        join(os.path.dirname(__file__),
+             "log",
+             f"{__pam_module_name__}.log"))
     log_file_handler.setLevel(log_level)
     log_file_handler.setFormatter(log_formatter)
     log.addHandler(log_file_handler)
