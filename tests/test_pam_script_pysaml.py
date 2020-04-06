@@ -13,6 +13,8 @@ data_dir = pam.data_test_dir
 with open(join(data_dir, "signed_assertion_response.xml"), "rb") as fh:
     root = etree.parse(fh).getroot()
 
+test_data_xml = b"<Test></Test>"
+
 test_dict_data = [
     ({1: 1, 2: 2, 3: 3}, [1, 3], {1: 1, 3: 3}),
     ({1: 1, 2: 2, 3: 3}, [1, 4], {1: 1}),
@@ -30,32 +32,17 @@ def test_select_dict_keys(dictionary, keys, expected):
     assert result == expected
 
 
-def test_parse_saml_to_time():
-    time = "2020-03-06T16:43:49.942Z"
-    time_unix_expected = 1583513029
-    time_wrong_fmt = "2020-03-06T16:43:49.Z"
-
-    time_unix = pam.parse_saml_to_time(time)
-    assert time_unix_expected == time_unix
-
-    with pytest.raises((ValueError, SystemExit)) as exit_err:
-        pam.parse_saml_to_time(time_wrong_fmt)
-    assert exit_err
-
-
 @pytest.mark.parametrize(
     "data, data_expected",
     [
-        (b'cGFtX3NjcmlwdF9weXNhbWwgdGVzdGluZyBkYXRhIHN0cmluZy4=',
-         b'pam_script_pysaml testing data string.'),
-        (b'eJwrSMyNL04uyiwoiS+oLE7MzVEoSS0uycxLV0hJLElUKC4pArL1ACtdDuU=',
-         b'pam_script_pysaml testing data string.')
+        (b'PFRlc3Q+PC9UZXN0Pg==', test_data_xml),
+        (b'eJyzCUktLrGz0QdTAB5XBGQ=', test_data_xml)
     ],
     ids=["Base64", "Compress-Base64"]
 )
 def test_decode_assertion(data, data_expected):
     data_decoded = pam.decode_assertion(data)
-    assert data_expected == data_decoded
+    assert data_decoded == data_expected
 
 
 @pytest.mark.parametrize(
@@ -80,16 +67,68 @@ def test_parse_idp_metadata():
 
     data = pam.parse_idp_metadata(
         join(data_dir, "idp_metadata_multi_signing_certs.xml"))
-    assert data_expected == data
+    assert data == data_expected
+
+
+# @pytest.mark.skip(reason="ToDo")
+@pytest.mark.parametrize(
+    "data, data_expected",
+    [
+        (
+            [{'entityID': 'e1', 'x509cert': ['c1']}],
+            [('e1', 'c1')]
+        ),
+        (
+            [{'entityID': 'e1', 'x509cert': ['c11', 'c12', 'c13']}],
+            [('e1', 'c11'), ('e1', 'c12'), ('e1', 'c13')]
+        ),
+        (
+            [{'entityID': 'e3', 'x509cert': ''}],
+            []
+        )
+    ],
+    ids=["Standard", "Multi Certs", "No Certs"]
+)
+def test_iterate_certs(data, data_expected):
+    data_iter = []
+    [data_iter.append((e, c)) for e, c in pam.iterate_certs(data)]
+    assert data_iter == data_expected
 
 
 @pytest.mark.parametrize(
-    "nb_expected, nooa_expected",
-    [("2014-03-31T00:36:46Z", "2023-10-02T05:57:16Z")],
-    ids=["Standard"]
+    "ts, nb_expected, nooa_expected",
+    [
+        (
+            'NotBefore="2014-03-31T00:36:46Z" '
+            'NotOnOrAfter="2023-10-02T05:57:16Z"',
+            1396226206,
+            1696226236
+         ),
+        (
+            'NotBefore="2014-03-31T00:36:46Z" '
+            'NotOnOrAfter="2023-10-02T05:57:16Z"',
+            1396226206,
+            1696226236
+        ),
+        (
+            'NotBefore="2014-03-31T00:36:46Z" '
+            'NotOnOrAfter="2023-10-02T05:57:16Z"',
+            1396226206,
+            1696226236
+        ),
+        (
+            '', 0, 0
+        )
+    ],
+    ids=["Standard", "NotBefore Only", "NotOnOrAfter Only", "No Conditions"]
 )
-def test_get_timestamps(nb_expected, nooa_expected):
-    nb, nooa = pam.get_timestamps(root)
+def test_get_timestamps(ts, nb_expected, nooa_expected):
+    test_conditions_xml = \
+        '<Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"> ' \
+        f'<saml:Conditions {ts}></saml:Conditions></Response>'
+
+    ts_root = etree.fromstring(test_conditions_xml)
+    nb, nooa = pam.get_timestamps(ts_root)
 
     assert nb == nb_expected
     assert nooa == nooa_expected
@@ -98,27 +137,26 @@ def test_get_timestamps(nb_expected, nooa_expected):
 @pytest.mark.parametrize(
     "nb, nooa, grace, ret_expected",
     [
-        ("2014-07-17T01:01:18Z", "2024-01-18T06:21:48Z", 0, True),
-        ("2014-07-17T01:01:18Z", "", 0, True),
-        ("", "2024-01-18T06:21:48Z", 0, True)
+        (1396226206, 1696226236, 0, True),
+        (0, 1696226236, 0, True),
+        (1396226206, 0, 0, True),
+        (0, 0, 0, True)
     ],
-    ids=["Standard", "NotBefore Only", "NotOnOrAfter Only"]
+    ids=["Standard", "NotBefore Only", "NotOnOrAfter Only", "No Conditions"]
 )
 def test_verify_timestamps(nb, nooa, grace, ret_expected):
-    assert ret_expected == pam.verify_timestamps(nb, nooa, grace)
+    assert pam.verify_timestamps(nb, nooa, grace) == ret_expected
 
 
 def test_xml_verifier():
-    data = b"<Test></Test>"
-
     with open(join(data_dir, "example.pem"), "r") as f:
         cert = f.read()
     with open(join(data_dir, "example.key"), "r") as f:
         key = f.read()
 
-    tree = etree.fromstring(data)
+    tree = etree.fromstring(test_data_xml)
 
     signed_root = XMLSigner().sign(tree, key=key, cert=cert)
     verified_data = XMLVerifier().verify(signed_root,
                                          x509_cert=cert).signed_data
-    assert data == verified_data
+    assert verified_data == test_data_xml

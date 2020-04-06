@@ -12,12 +12,13 @@ Ensure you have met the following basic requirements:
 * python 3.6+ installed.
 
 ### Installation
+(These instructions may vary depending on OS version and your configuration.)
+
 * clone this repository to any appropriate place (e.g. `/usr/share/libpam-script`):
     ```commandline
     git clone https://github.com/BubuLK/pam-script-pysaml
     ```
-* install OS dependencies (this may vary depending on OS version), for Debian
-  install `zlib` library:
+* install OS dependencies, e.g. for Debian install `zlib` library:
     ```commandline
   apt install zlib1g-dev
     ```
@@ -65,8 +66,7 @@ is not significant):
    of this attribute will be matched against the username passed. Default: `uid`,
 
 #### PAM system configuration
-* create a symlink from `pam_script_auth` to `pam-script-pysaml.py`,
-* get metadata.xml from your IdP and copy them into installation dir
+* Copy the metadata.xml file from your IdP somewhere into installation
   (see `idp` parameter above),
 * configure PAM module for selected service in `/etc/pam.d/` (or `/etc/pam.conf`)
   like this:

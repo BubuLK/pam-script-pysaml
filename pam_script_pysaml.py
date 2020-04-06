@@ -35,12 +35,13 @@ import sys
 import logging
 from distutils.util import strtobool
 
-import ciso8601
 import time
 import calendar
 
 import zlib
 from base64 import b64decode
+
+import ciso8601
 
 from lxml import etree
 from signxml import (XMLVerifier, Namespace,
@@ -91,9 +92,7 @@ def config_logging(severity):
     """
     log = logging.getLogger(__pam_module_name__)
 
-    log_level = getattr(logging,
-                        severity.upper(),
-                        logging.WARNING)
+    log_level = getattr(logging, severity.upper(), logging.WARNING)
     log.setLevel(log_level)
 
     log_formatter = logging.Formatter(
@@ -109,8 +108,7 @@ def config_logging(severity):
     # Temporary file handler
     log_file_handler = logging.FileHandler(
         join(os.path.dirname(__file__),
-             "log",
-             f"{__pam_module_name__}.log"))
+             "log", f"{__pam_module_name__}.log"))
     log_file_handler.setLevel(log_level)
     log_file_handler.setFormatter(log_formatter)
     log.addHandler(log_file_handler)
@@ -256,49 +254,43 @@ def iterate_certs(data):
             yield eid, crt
 
 
-def parse_saml_to_time(time_str):
-    """
-    Parse SAML assertion time format and converts it to Unix timestamp.
-
-    :param time_str: time string from SAML assertion
-    :return: Unix timestamp value
-    """
-    logger = logging.getLogger(__pam_module_name__)
-
-    try:
-        data = ciso8601.parse_datetime(time_str)
-    except ValueError as err:
-        logger.error(
-            f"Time string {time_str} does not match expected format: "
-            f"{err}."
-        )
-        sys.exit(PAM_CRED_ERR)
-    return calendar.timegm(data.utctimetuple())
-
-
 def get_timestamps(etree_xml):
     """
-    Parse SAML assertion validity timestamps from Conditions element.
+    Parse SAML assertion validity timestamps from Conditions element
+    and convert them to Unix timestamps.
 
     :param etree_xml: etree element object
     :return: NotBefore, NotOnOrAfter
     """
-    conditions_node = etree_xml.find(
-        ".//saml:Conditions", namespaces=ns)
+    logger = logging.getLogger(__pam_module_name__)
+    time_attr = {'NotBefore': 0, 'NotOnOrAfter': 0}
 
-    nb_attr = nooa_attr = 0
+    conditions_node = etree_xml.find(".//saml:Conditions", namespaces=ns)
+
     if conditions_node is not None:
-        nb_attr = conditions_node.get('NotBefore')
-        nooa_attr = conditions_node.get('NotOnOrAfter')
-    return nb_attr, nooa_attr
+        time_attr['NotBefore'] = conditions_node.get('NotBefore')
+        time_attr['NotOnOrAfter'] = conditions_node.get('NotOnOrAfter')
+
+        for key, timestamp in time_attr.items():
+            if timestamp is not None:
+                try:
+                    dtime = ciso8601.parse_datetime(timestamp)
+                    time_attr[key] = calendar.timegm(dtime.utctimetuple())
+                except ValueError as err:
+                    logger.error(
+                        f"Time string {key}={timestamp} does not match "
+                        f"expected format: {err}.")
+                    sys.exit(PAM_CRED_ERR)
+
+    return [(0 if v is None else v) for v in time_attr.values()]
 
 
 def verify_timestamps(nb, nooa, grace):
     """
     Verify if given timeframe (including grace) is valid.
 
-    :param nb: NotBefore SAML assertion timestamp
-    :param nooa: NotOnOrAfter SAML assertion timestamp
+    :param nb: NotBefore Unix timestamp
+    :param nooa: NotOnOrAfter Unix timestamp
     :param grace: grace/skew time period in seconds
     :return: True/False
     """
@@ -306,11 +298,11 @@ def verify_timestamps(nb, nooa, grace):
 
     now = int(time.time())
 
-    if nb and parse_saml_to_time(nb) > (now + grace):
+    if nb and nb > (now + grace):
         logger.error("SAML assertion timestamps verification "
                      "failed: timestamps not yet valid.")
         return False
-    if nooa and (parse_saml_to_time(nooa) + grace) <= now:
+    if nooa and (nooa + grace) <= now:
         logger.error("SAML assertion timestamps verification "
                      "failed: timestamps expired.")
         return False
@@ -318,15 +310,18 @@ def verify_timestamps(nb, nooa, grace):
 
 
 def main():
+    """
+    Verify given SAML assertion
+
+    :return:
+    """
     pam_params = get_pam_params(os.environ, sys.argv[1:])
     logger = config_logging(pam_params.get('log_level'))
 
     # Verify PAM_TYPE request
-    if pam_params.get('PAM_TYPE') != 'auth':
-        logger.error(
-            f"This module supports only the PAM_TYPE=auth type: "
-            f"PAM_TYPE={pam_params.get('PAM_TYPE')} was requested."
-        )
+    pam_type = pam_params.get('PAM_TYPE')
+    if pam_type != 'auth':
+        logger.error(f"Unsupported PAM_TYPE={pam_type} requested.")
         sys.exit(PAM_MODULE_UNKNOWN)
 
     # Verify 'only_from' response conditions
@@ -377,8 +372,8 @@ def main():
     # Verify trusted SP
     trusted_sp = pam_params['trusted_sp']
     if not trusted_sp:
-        logger.warning("Unsecured configuration: no trusted_sp "
-                       "argument defined.")
+        logger.warning(
+            "Unsecured configuration: no trusted_sp argument defined.")
     else:
         node = tree_verified.find(
             ".//saml:AudienceRestriction/saml:Audience", namespaces=ns)
@@ -420,8 +415,13 @@ def main():
 
     # Verify timestamps
     if pam_params['check_timeframe']:
+        grace = pam_params['grace']
         nb, nooa = get_timestamps(tree_verified)
-        if verify_timestamps(nb, nooa, pam_params['grace']):
+        logger.info(
+            f"SAML assertion validity: NB={time.ctime(nb)} "
+            f"NOOA={time.ctime(nooa)} (grace={grace}).")
+
+        if verify_timestamps(nb, nooa, grace):
             logger.debug("SAML assertion timestamps verified.")
         else:
             logger.error("SAML assertion timestamps verification failed.")
@@ -431,7 +431,7 @@ def main():
             "SAML assertion time validity not checked: disabled by "
             "check_timeframe=False parameter.")
 
-    logger.info(f"SAML assertion verified OK: user={user} allowed to login.")
+    logger.info(f"SAML assertion verified: user={user} allowed to login.")
     sys.exit(PAM_SUCCESS)
 
 
