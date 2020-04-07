@@ -8,14 +8,14 @@ from lxml import etree
 
 import pam_script_pysaml as pam
 
-data_dir = pam.data_test_dir
+data_dir = pam.__data_test_dir__
 
 with open(join(data_dir, "signed_assertion_response.xml"), "rb") as fh:
     root = etree.parse(fh).getroot()
 
 test_data_xml = b"<Test></Test>"
 
-test_dict_data = [
+test_data_dict = [
     ({1: 1, 2: 2, 3: 3}, [1, 3], {1: 1, 3: 3}),
     ({1: 1, 2: 2, 3: 3}, [1, 4], {1: 1}),
     ({1: 1, 2: 2, 3: 3}, [], {}),
@@ -24,8 +24,8 @@ test_dict_data = [
 
 @pytest.mark.parametrize(
     "dictionary, keys, expected",
-    test_dict_data,
-    ids=["Select_keys", "Missing_keys", "Empty_keys"]
+    test_data_dict,
+    ids=["Select Keys", "Missing Keys", "Empty Keys"]
 )
 def test_select_dict_keys(dictionary, keys, expected):
     result = pam.select_dict_keys(dictionary, keys)
@@ -38,7 +38,7 @@ def test_select_dict_keys(dictionary, keys, expected):
         (b'PFRlc3Q+PC9UZXN0Pg==', test_data_xml),
         (b'eJyzCUktLrGz0QdTAB5XBGQ=', test_data_xml)
     ],
-    ids=["Base64", "Compress-Base64"]
+    ids=["Base64", "Compress+Base64"]
 )
 def test_decode_assertion(data, data_expected):
     data_decoded = pam.decode_assertion(data)
@@ -51,7 +51,7 @@ def test_decode_assertion(data, data_expected):
         ("uid", "test"),
         ("uid_not_present", None)
     ],
-    ids=["uid", "uid_not_present"]
+    ids=["uid", "uid Not Present"]
 )
 def test_get_uid_attribute(uid, uid_expected):
     user = pam.get_uid_attribute(root, uid)
@@ -70,21 +70,20 @@ def test_parse_idp_metadata():
     assert data == data_expected
 
 
-# @pytest.mark.skip(reason="ToDo")
 @pytest.mark.parametrize(
     "data, data_expected",
     [
         (
-            [{'entityID': 'e1', 'x509cert': ['c1']}],
-            [('e1', 'c1')]
+                [{'entityID': 'e1', 'x509cert': ['c1']}],
+                [('e1', 'c1')]
         ),
         (
-            [{'entityID': 'e1', 'x509cert': ['c11', 'c12', 'c13']}],
-            [('e1', 'c11'), ('e1', 'c12'), ('e1', 'c13')]
+                [{'entityID': 'e1', 'x509cert': ['c11', 'c12', 'c13']}],
+                [('e1', 'c11'), ('e1', 'c12'), ('e1', 'c13')]
         ),
         (
-            [{'entityID': 'e3', 'x509cert': ''}],
-            []
+                [{'entityID': 'e3', 'x509cert': ''}],
+                []
         )
     ],
     ids=["Standard", "Multi Certs", "No Certs"]
@@ -99,25 +98,25 @@ def test_iterate_certs(data, data_expected):
     "ts, nb_expected, nooa_expected",
     [
         (
-            'NotBefore="2014-03-31T00:36:46Z" '
-            'NotOnOrAfter="2023-10-02T05:57:16Z"',
-            1396226206,
-            1696226236
-         ),
-        (
-            'NotBefore="2014-03-31T00:36:46Z" '
-            'NotOnOrAfter="2023-10-02T05:57:16Z"',
-            1396226206,
-            1696226236
+                'NotBefore="2014-03-31T00:36:46Z" '
+                'NotOnOrAfter="2023-10-02T05:57:16Z"',
+                1396226206,
+                1696226236
         ),
         (
-            'NotBefore="2014-03-31T00:36:46Z" '
-            'NotOnOrAfter="2023-10-02T05:57:16Z"',
-            1396226206,
-            1696226236
+                'NotBefore="2014-03-31T00:36:46Z" '
+                'NotOnOrAfter="2023-10-02T05:57:16Z"',
+                1396226206,
+                1696226236
         ),
         (
-            '', 0, 0
+                'NotBefore="2014-03-31T00:36:46Z" '
+                'NotOnOrAfter="2023-10-02T05:57:16Z"',
+                1396226206,
+                1696226236
+        ),
+        (
+                '', 0, 0
         )
     ],
     ids=["Standard", "NotBefore Only", "NotOnOrAfter Only", "No Conditions"]
@@ -160,3 +159,18 @@ def test_xml_verifier():
     verified_data = XMLVerifier().verify(signed_root,
                                          x509_cert=cert).signed_data
     assert verified_data == test_data_xml
+
+
+def test_verify_assertion_signature():
+    with open(join(data_dir,
+                   "signed_assertion_response.xml.base64"), "rb") as f:
+        auth_data = f.read()
+    with open(join(data_dir,
+                   "verified_assertion_response.xml"), "rb") as f:
+        verified_assertion_expected = f.read()
+
+    idp_metadata = join(data_dir, "idp_signed_metadata_demo1.xml")
+    verified_assertion = pam.verify_assertion_signature(auth_data,
+                                                        idp_metadata)
+
+    assert etree.tostring(verified_assertion) == verified_assertion_expected

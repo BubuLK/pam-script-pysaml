@@ -7,7 +7,7 @@ import os
 
 import pam_script_pysaml as pam
 
-data_dir = pam.data_test_dir
+data_dir = pam.__data_test_dir__
 
 sys.argv = [
     '',
@@ -29,7 +29,7 @@ os.environ['PAM_RUSER'] = 'test'
 os.environ['PAM_SERVICE'] = 'dovecot'
 os.environ['PAM_TTY'] = '/dev/null'
 os.environ['PAM_USER'] = 'test'
-os.environ['PAM_TYPE'] = 'auth'
+os.environ['PAM_TYPE'] = 'auth_data'
 
 with open(f"{data_dir}/signed_assertion_response.xml.base64", "r") as fh:
     os.environ['PAM_AUTHTOK'] = fh.read()

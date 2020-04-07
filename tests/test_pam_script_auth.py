@@ -5,7 +5,7 @@ import pytest
 
 import pam_script_pysaml as pam
 
-data_dir = pam.data_test_dir
+data_dir = pam.__data_test_dir__
 
 sys.argv = [
     '',
@@ -24,17 +24,16 @@ os.environ['PAM_RUSER'] = 'test'
 os.environ['PAM_SERVICE'] = 'dovecot'
 os.environ['PAM_TTY'] = '/dev/null'
 os.environ['PAM_USER'] = 'test'
-os.environ['PAM_TYPE'] = 'auth'
+os.environ['PAM_TYPE'] = 'auth_data'
 
 with open(join(data_dir, "signed_assertion_response.xml.base64"), "r") as fh:
     os.environ['PAM_AUTHTOK'] = fh.read()
 
 
-@pytest.mark.skip(reason="ToDo")
 def test_get_pam_params():
     # ToDo
-    # pam_params = pam.get_pam_params(os.environ, sys.argv[1:])
-    assert True
+    pam_params = pam.get_pam_params(os.environ, sys.argv[1:])
+    assert pam_params['PAM_TYPE'] == 'auth_data'
 
 
 def test_main():

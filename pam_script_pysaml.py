@@ -1,33 +1,30 @@
 #!/usr/bin/env python3
-#
-# pam_script_pysaml.py
-#
-# Implements 'pam_script_auth' module for pam-script subsystem.
-#
-# The environment variables passed by pam-script onto the script
-# (all will exist but some may be null if not applicable):
-#
-# PAM_SERVICE	 - the application that's invoking the PAM stack
-# PAM_TYPE       - the module-type (e.g. auth,account,session,password)
-# PAM_USER	     - the user being authenticated into
-# PAM_RUSER	     - the remote user, the user invoking the application
-# PAM_RHOST	     - remote host
-# PAM_TTY		 - the controlling tty
-# PAM_AUTHTOK	 - password in readable text
-# PAM_OLDAUTHTOK - old password in readable text
-#
-# Id addition the pam_script.so arguments in the pam.conf will be passed
-# on the command line, which can be used to modify the script behavior.
-#
-# dir               - installation dir
-# grace             - time 'skew' allowing the validation (in seconds)
-# check_timeframe   - validates the SAML assertion if expired (True/False)
-# idp               - trusted IdPs metadata file (CSV multi-value)
-# log_level         - logging severity
-# only_from         - trusted IdPs host names (CSV multi-value)
-# trusted_sp        - entityID of trusted SP
-# user_id           - Attribute element representing validated username
-#
+"""Implements 'pam_script_auth' module for pam-script subsystem.
+
+The environment variables passed by pam-script onto the script
+(all will exist but some may be null if not applicable):
+
+PAM_SERVICE	 - the application that's invoking the PAM stack
+PAM_TYPE       - the module-type (e.g. auth_data,account,session,password)
+PAM_USER	     - the user being authenticated into
+PAM_RUSER	     - the remote user, the user invoking the application
+PAM_RHOST	     - remote host
+PAM_TTY		 - the controlling tty
+PAM_AUTHTOK	 - password in readable text
+PAM_OLDAUTHTOK - old password in readable text
+
+Id addition the pam_script.so arguments in the pam.conf will be passed
+on the command line, which can be used to modify the script behavior.
+
+dir               - installation dir
+grace             - time 'skew' allowing the validation (in seconds)
+check_timeframe   - validates the SAML assertion if expired (True/False)
+idp               - trusted IdPs metadata file (CSV multi-value)
+log_level         - logging severity
+only_from         - trusted IdPs host names (CSV multi-value)
+trusted_sp        - entityID of trusted SP
+user_id           - Attribute element representing validated username
+"""
 
 import os
 from os.path import join
@@ -70,9 +67,7 @@ PAM_ABORT = 26
 PAM_MODULE_UNKNOWN = 28
 #
 __pam_module_name__ = "pam-script-pysaml"
-#
-data_dir = join(os.path.dirname(__file__), "data")
-data_test_dir = join(os.path.dirname(__file__), "tests", "data")
+__data_test_dir__ = join(os.path.dirname(__file__), "tests", "data")
 #
 ns = Namespace(
     ds="http://www.w3.org/2000/09/xmldsig#",
@@ -84,12 +79,12 @@ ns = Namespace(
 
 
 def config_logging(severity):
-    """
-    Setup basic logging configuration.
+    """Setup basic logging configuration.
 
     :param severity: logging severity
     :return: logging handler
     """
+
     log = logging.getLogger(__pam_module_name__)
 
     log_level = getattr(logging, severity.upper(), logging.WARNING)
@@ -117,25 +112,25 @@ def config_logging(severity):
 
 
 def select_dict_keys(dictionary, keys):
-    """
-    Filters a dict by only including certain keys.
+    """Filters a dict by only including certain keys.
 
     :param dictionary: dictionary
     :param keys: keys to be selected
     :return: dictionary with selected keys
     """
+
     key_set = set(keys) & set(dictionary.keys())
     return {key: dictionary[key] for key in key_set}
 
 
 def get_pam_params(env, argv):
-    """
-    Get/parse PAM module parameters and set default values.
+    """Get module parameters and set default values.
 
     :param env: environment variables
     :param argv: command line arguments
     :return: dictionary of selected parameters
     """
+
     pam_env = [
         'PAM_AUTHTOK',
         'PAM_OLDAUTHTOK',
@@ -179,13 +174,13 @@ def get_pam_params(env, argv):
 
 
 def decode_assertion(data):
-    """
-    Base64 decodes and then inflates SAML assertion data.
+    """Base64 decodes and then inflates SAML assertion data.
 
     :param data: base64 encoded and deflated SAML assertion data (as
                  received from IdP)
     :return: decoded and inflated SAML assertion string
     """
+
     data_decoded = b64decode(data)
     try:
         return zlib.decompress(data_decoded)
@@ -195,13 +190,13 @@ def decode_assertion(data):
 
 
 def get_uid_attribute(etree_xml, uid):
-    """
-    Get SAML assertion Attribute element representing UID.
+    """Get SAML assertion Attribute element representing uid.
 
     :param etree_xml: etree element object
-    :param uid: name of Attribute element representing UID
+    :param uid: name of Attribute element representing uid
     :return: uid value
     """
+
     return etree_xml.find(
         f".//saml:AttributeStatement/saml:Attribute[@Name='{uid}']"
         f"/saml:AttributeValue",
@@ -209,12 +204,12 @@ def get_uid_attribute(etree_xml, uid):
 
 
 def parse_idp_metadata(idp_metadata_file):
-    """
-    Parse entityID and X509Certificate elements from IdP metadata file.
+    """Parse entityID and X509Certificate elements from metadata file.
 
     :param idp_metadata_file: IdP metadata file name
     :return: dictionary of element values
     """
+
     logger = logging.getLogger(__pam_module_name__)
     data = {'entityID': '', 'x509cert': ''}
 
@@ -242,12 +237,12 @@ def parse_idp_metadata(idp_metadata_file):
 
 
 def iterate_certs(data):
-    """
-    Iterate over all entityID/certificate pairs parsed from IdPs metadata.
+    """Iterate over all (entityID, x509cert) pairs.
 
     :param data: parsed IdP data
     :return: entityID, cert
     """
+
     for idp in data:
         eid = idp['entityID']
         for crt in idp['x509cert']:
@@ -255,13 +250,15 @@ def iterate_certs(data):
 
 
 def get_timestamps(etree_xml):
-    """
-    Parse SAML assertion validity timestamps from Conditions element
-    and convert them to Unix timestamps.
+    """Parse SAML assertion validity timestamps
+
+    Timestamps are parsed from Conditions element and converted to Unix
+    timestamps.
 
     :param etree_xml: etree element object
     :return: NotBefore, NotOnOrAfter
     """
+
     logger = logging.getLogger(__pam_module_name__)
     time_attr = {'NotBefore': 0, 'NotOnOrAfter': 0}
 
@@ -286,17 +283,21 @@ def get_timestamps(etree_xml):
 
 
 def verify_timestamps(nb, nooa, grace):
-    """
-    Verify if given timeframe (including grace) is valid.
+    """Verify if given timeframe (including grace) is valid.
 
-    :param nb: NotBefore Unix timestamp
-    :param nooa: NotOnOrAfter Unix timestamp
+    :param nb:
+    :param nooa:
     :param grace: grace/skew time period in seconds
     :return: True/False
     """
+
     logger = logging.getLogger(__pam_module_name__)
 
     now = int(time.time())
+
+    logger.info(
+        f"SAML assertion validity: NB={time.ctime(nb)} "
+        f"NOOA={time.ctime(nooa)} (grace={grace}).")
 
     if nb and nb > (now + grace):
         logger.error("SAML assertion timestamps verification "
@@ -309,40 +310,23 @@ def verify_timestamps(nb, nooa, grace):
     return True
 
 
-def main():
+def verify_assertion_signature(auth_data, idp_metadata):
+    """Verify SAML assertion signature
+
+    :param auth_data: encoded SAML assertion
+    :param idp_metadata: IdP metadata
+    :return: verified assertion tree element
     """
-    Verify given SAML assertion
 
-    :return:
-    """
-    pam_params = get_pam_params(os.environ, sys.argv[1:])
-    logger = config_logging(pam_params.get('log_level'))
+    logger = logging.getLogger(__pam_module_name__)
 
-    # Verify PAM_TYPE request
-    pam_type = pam_params.get('PAM_TYPE')
-    if pam_type != 'auth':
-        logger.error(f"Unsupported PAM_TYPE={pam_type} requested.")
-        sys.exit(PAM_MODULE_UNKNOWN)
-
-    # Verify 'only_from' response conditions
-    only_from = pam_params.get('only_from')
-    pam_rhost = pam_params.get('PAM_RHOST')
-
-    if only_from and pam_rhost and pam_rhost not in [host.strip() for host in
-                                                     only_from.split(',')]:
-        logger.error(
-            f"Requesting remote host PAM_RHOST={pam_rhost} is not allowed to "
-            f"authenticate.")
-        sys.exit(PAM_CRED_INSUFFICIENT)
+    assertion = decode_assertion(auth_data)
+    verified_assertion = b''
 
     # Extract IdPs signing certificates
     idp_data = []
-    for file in [file.strip() for file in pam_params.get('idp').split(',')]:
+    for file in [file.strip() for file in idp_metadata.split(',')]:
         idp_data.append(parse_idp_metadata(file))
-
-    # Verify SAML assertion signature
-    assertion = decode_assertion(pam_params.get('PAM_AUTHTOK'))
-    verified_assertion = b''
 
     for entity, cert in iterate_certs(idp_data):
         try:
@@ -362,12 +346,44 @@ def main():
                 f"entityID={entity}: {assertion_verify_err}.")
 
     if verified_assertion:
-        tree_verified = verified_assertion.signed_xml
+        verified_assertion = verified_assertion.signed_xml
     else:
         logger.error(
             "SAML assertion signatures can not be verified: "
             "no valid signature found.")
         sys.exit(PAM_AUTH_ERR)
+    return verified_assertion
+
+
+def main():
+    """Implements 'pam_script_auth' module for pam-script subsystem.
+
+    :return: PAM compatible exit code
+    """
+
+    pam_params = get_pam_params(os.environ, sys.argv[1:])
+    logger = config_logging(pam_params.get('log_level'))
+
+    # Verify PAM_TYPE request
+    pam_type = pam_params.get('PAM_TYPE')
+    if pam_type != 'auth_data':
+        logger.error(f"Unsupported PAM_TYPE={pam_type} requested.")
+        sys.exit(PAM_MODULE_UNKNOWN)
+
+    # Verify 'only_from' response conditions
+    only_from = pam_params.get('only_from')
+    pam_rhost = pam_params.get('PAM_RHOST')
+
+    if only_from and pam_rhost and pam_rhost not in [host.strip() for host in
+                                                     only_from.split(',')]:
+        logger.error(
+            f"Requesting remote host PAM_RHOST={pam_rhost} is not allowed to "
+            f"authenticate.")
+        sys.exit(PAM_CRED_INSUFFICIENT)
+
+    # Verify SAML assertion signature
+    tree_verified = verify_assertion_signature(pam_params.get('PAM_AUTHTOK'),
+                                               pam_params.get('idp'))
 
     # Verify trusted SP
     trusted_sp = pam_params['trusted_sp']
@@ -400,7 +416,6 @@ def main():
             f"user_id={user_id} value.")
         sys.exit(PAM_AUTH_ERR)
 
-    # ToDo: what about PAM_RUSER (any relevance here)?
     pam_user = pam_params.get('PAM_USER')
 
     if user and (user == pam_user):
@@ -415,13 +430,8 @@ def main():
 
     # Verify timestamps
     if pam_params['check_timeframe']:
-        grace = pam_params['grace']
         nb, nooa = get_timestamps(tree_verified)
-        logger.info(
-            f"SAML assertion validity: NB={time.ctime(nb)} "
-            f"NOOA={time.ctime(nooa)} (grace={grace}).")
-
-        if verify_timestamps(nb, nooa, grace):
+        if verify_timestamps(nb, nooa, pam_params['grace']):
             logger.debug("SAML assertion timestamps verified.")
         else:
             logger.error("SAML assertion timestamps verification failed.")
