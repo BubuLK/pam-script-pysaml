@@ -27,7 +27,6 @@ user_id           - Attribute element representing validated username
 """
 
 import os
-from os.path import join
 import sys
 import logging
 from distutils.util import strtobool
@@ -67,7 +66,7 @@ PAM_ABORT = 26
 PAM_MODULE_UNKNOWN = 28
 #
 __pam_module_name__ = "pam-script-pysaml"
-__data_test_dir__ = join(os.path.dirname(__file__), "tests", "data")
+__data_test_dir__ = os.path.join(os.path.dirname(__file__), "tests", "data")
 #
 ns = Namespace(
     ds="http://www.w3.org/2000/09/xmldsig#",
@@ -102,8 +101,8 @@ def config_logging(severity):
 
     # Temporary file handler
     log_file_handler = logging.FileHandler(
-        join(os.path.dirname(__file__),
-             "log", f"{__pam_module_name__}.log"))
+        os.path.join(os.path.dirname(__file__),
+                     "log", f"{__pam_module_name__}.log"))
     log_file_handler.setLevel(log_level)
     log_file_handler.setFormatter(log_formatter)
     log.addHandler(log_file_handler)
@@ -171,6 +170,28 @@ def get_pam_params(env, argv):
     argv.setdefault('user_id', 'uid')
 
     return {**env, **argv}
+
+
+def verify_only_from(pam_rhost, only_from):
+    """Verify 'only_from' response conditions."""
+
+    return only_from and pam_rhost and \
+        pam_rhost in [host.strip() for host in only_from.split(',')]
+
+
+def verify_trusted_sp(tree, trusted_sp=False):
+    """Verify trusted SP."""
+
+    logger = logging.getLogger(__pam_module_name__)
+
+    if not trusted_sp:
+        logger.warning(
+            "Unsecured configuration: no trusted_sp argument defined.")
+        return True
+
+    node = tree.find(
+        ".//saml:AudienceRestriction/saml:Audience", namespaces=ns)
+    return node is not None and node.text and node.text == trusted_sp
 
 
 def decode_assertion(data):
@@ -371,14 +392,10 @@ def main():
         sys.exit(PAM_MODULE_UNKNOWN)
 
     # Verify 'only_from' response conditions
-    only_from = pam_params.get('only_from')
-    pam_rhost = pam_params.get('PAM_RHOST')
-
-    if only_from and pam_rhost and pam_rhost not in [host.strip() for host in
-                                                     only_from.split(',')]:
+    if not verify_only_from(pam_params['PAM_RHOST'], pam_params['only_from']):
         logger.error(
-            f"Requesting remote host PAM_RHOST={pam_rhost} is not allowed to "
-            f"authenticate.")
+            f"Requesting remote host PAM_RHOST={pam_params['PAM_RHOST']} is "
+            f"not allowed to authenticate.")
         sys.exit(PAM_CRED_INSUFFICIENT)
 
     # Verify SAML assertion signature
@@ -386,22 +403,15 @@ def main():
                                                pam_params.get('idp'))
 
     # Verify trusted SP
-    trusted_sp = pam_params['trusted_sp']
-    if not trusted_sp:
-        logger.warning(
-            "Unsecured configuration: no trusted_sp argument defined.")
+    if verify_trusted_sp(tree_verified, pam_params['trusted_sp']):
+        logger.debug(
+            f"SAML assertion element Audience "
+            f"match trusted_sp={pam_params['trusted_sp']}.")
     else:
-        node = tree_verified.find(
-            ".//saml:AudienceRestriction/saml:Audience", namespaces=ns)
-        if node is not None and node.text and node.text == trusted_sp:
-            logger.debug(
-                f"SAML assertion element Audience "
-                f"match trusted_sp={trusted_sp}.")
-        else:
-            logger.error(
-                f"SAML assertion element Audience "
-                f"do not match trusted_sp={trusted_sp}.")
-            sys.exit(PAM_CRED_INSUFFICIENT)
+        logger.error(
+            f"SAML assertion element Audience "
+            f"do not match trusted_sp={pam_params['trusted_sp']}.")
+        sys.exit(PAM_CRED_INSUFFICIENT)
 
     # Verify uid matching
     user_id = pam_params.get('user_id')

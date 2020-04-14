@@ -1,16 +1,23 @@
 import pytest
+from contextlib import nullcontext as does_not_raise
 
-from os.path import join
+import os
 import pickle
 
-from signxml import XMLSigner, XMLVerifier
+import time
+
+from signxml import (XMLSigner, XMLVerifier,
+                     InvalidInput, InvalidSignature,
+                     InvalidCertificate, InvalidDigest)
+
 from lxml import etree
 
 import pam_script_pysaml as pam
 
 data_dir = pam.__data_test_dir__
 
-with open(join(data_dir, "signed_assertion_response.xml"), "rb") as fh:
+with open(os.path.join(data_dir,
+                       "signed_assertion_response.xml"), "rb") as fh:
     root = etree.parse(fh).getroot()
 
 test_data_xml = b"<Test></Test>"
@@ -30,6 +37,34 @@ test_data_dict = [
 def test_select_dict_keys(dictionary, keys, expected):
     result = pam.select_dict_keys(dictionary, keys)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "rhost, only_from, ret_expected",
+    [
+        ('localhost', '127.0.0.1,::1,localhost', True),
+        ('147.228.1.1', '127.0.0.1,::1,localhost', False)
+    ],
+    ids=["RHOST OK", "RHOST Bad"]
+)
+def test_verify_only_from(rhost, only_from, ret_expected):
+    assert pam.verify_only_from(rhost, only_from) == ret_expected
+
+
+@pytest.mark.parametrize(
+    "tree, trusted_sp, ret_expected",
+    [
+        (
+                root,
+                'https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php',
+                True),
+        (root, 'https://wrong.ip.org', False),
+        (root, '', True)
+    ],
+    ids=["Trusted SP", "Untrusted SP", "Trusted SP Missing"]
+)
+def test_verify_trusted_sp(tree, trusted_sp, ret_expected):
+    assert pam.verify_trusted_sp(tree, trusted_sp) == ret_expected
 
 
 @pytest.mark.parametrize(
@@ -61,12 +96,13 @@ def test_get_uid_attribute(uid, uid_expected):
 
 
 def test_parse_idp_metadata():
-    with open(join(data_dir, "idp_metadata_multi_signing_certs.pickle"),
-              "rb") as f:
+    with open(
+            os.path.join(data_dir, "idp_metadata_multi_signing_certs.pickle"),
+            "rb") as f:
         data_expected = pickle.load(f)
 
     data = pam.parse_idp_metadata(
-        join(data_dir, "idp_metadata_multi_signing_certs.xml"))
+        os.path.join(data_dir, "idp_metadata_multi_signing_certs.xml"))
     assert data == data_expected
 
 
@@ -95,62 +131,94 @@ def test_iterate_certs(data, data_expected):
 
 
 @pytest.mark.parametrize(
-    "ts, nb_expected, nooa_expected",
+    "ts, nb_expected, nooa_expected, raise_expected",
     [
         (
                 'NotBefore="2014-03-31T00:36:46Z" '
                 'NotOnOrAfter="2023-10-02T05:57:16Z"',
                 1396226206,
-                1696226236
+                1696226236,
+                does_not_raise()
         ),
         (
                 'NotBefore="2014-03-31T00:36:46Z" '
                 'NotOnOrAfter="2023-10-02T05:57:16Z"',
                 1396226206,
-                1696226236
+                1696226236,
+                does_not_raise()
         ),
         (
                 'NotBefore="2014-03-31T00:36:46Z" '
                 'NotOnOrAfter="2023-10-02T05:57:16Z"',
                 1396226206,
-                1696226236
+                1696226236,
+                does_not_raise()
         ),
         (
-                '', 0, 0
+                '', 0, 0, does_not_raise()
+
+        ),
+        (
+                'NotBefore="2014-03-31T00:36:46X"',
+                None, None, pytest.raises((ValueError, SystemExit))
         )
     ],
-    ids=["Standard", "NotBefore Only", "NotOnOrAfter Only", "No Conditions"]
+    ids=[
+        "Standard",
+        "NotBefore Only",
+        "NotOnOrAfter Only",
+        "No Conditions",
+        "Bad Time Format"
+    ]
 )
-def test_get_timestamps(ts, nb_expected, nooa_expected):
-    test_conditions_xml = \
-        '<Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"> ' \
-        f'<saml:Conditions {ts}></saml:Conditions></Response>'
+def test_get_timestamps(ts, nb_expected, nooa_expected, raise_expected):
+    ts_conditions_xml = f"""
+        <Response xmlns:saml='urn:oasis:names:tc:SAML:2.0:assertion'> 
+        <saml:Conditions {ts}></saml:Conditions></Response>
+    """
 
-    ts_root = etree.fromstring(test_conditions_xml)
-    nb, nooa = pam.get_timestamps(ts_root)
+    ts_root = etree.fromstring(ts_conditions_xml)
+    nb = nooa = None
+
+    with raise_expected:
+        nb, nooa = pam.get_timestamps(ts_root)
 
     assert nb == nb_expected
     assert nooa == nooa_expected
 
 
 @pytest.mark.parametrize(
-    "nb, nooa, grace, ret_expected",
+    "nb_diff, nooa_diff, grace, ret_expected",
     [
-        (1396226206, 1696226236, 0, True),
-        (0, 1696226236, 0, True),
-        (1396226206, 0, 0, True),
-        (0, 0, 0, True)
+        (60, 60, 0, True),
+        (0, 60, 0, True),
+        (60, 0, 0, True),
+        (0, 0, 0, True),
+        (60, -60, 0, False),
+        (-60, 60, 0, False)
     ],
-    ids=["Standard", "NotBefore Only", "NotOnOrAfter Only", "No Conditions"]
+    ids=[
+        "Standard",
+        "NotBefore Only",
+        "NotOnOrAfter Only",
+        "No Conditions",
+        "NotBefore Out",
+        "NotOnOrAfter Out"
+    ]
 )
-def test_verify_timestamps(nb, nooa, grace, ret_expected):
+def test_verify_timestamps(nb_diff, nooa_diff, grace, ret_expected):
+    now = int(time.time())
+
+    nb = (0 if nb_diff == 0 else now - nb_diff)
+    nooa = (0 if nooa_diff == 0 else now + nooa_diff)
+
     assert pam.verify_timestamps(nb, nooa, grace) == ret_expected
 
 
 def test_xml_verifier():
-    with open(join(data_dir, "example.pem"), "r") as f:
+    with open(os.path.join(data_dir, "example.pem"), "r") as f:
         cert = f.read()
-    with open(join(data_dir, "example.key"), "r") as f:
+    with open(os.path.join(data_dir, "example.key"), "r") as f:
         key = f.read()
 
     tree = etree.fromstring(test_data_xml)
@@ -161,16 +229,53 @@ def test_xml_verifier():
     assert verified_data == test_data_xml
 
 
-def test_verify_assertion_signature():
-    with open(join(data_dir,
-                   "signed_assertion_response.xml.base64"), "rb") as f:
-        auth_data = f.read()
-    with open(join(data_dir,
-                   "verified_assertion_response.xml"), "rb") as f:
-        verified_assertion_expected = f.read()
+with open(
+        os.path.join(data_dir, "signed_assertion_response.xml.base64"),
+        "rb") as fh:
+    auth_data = fh.read()
 
-    idp_metadata = join(data_dir, "idp_signed_metadata_demo1.xml")
-    verified_assertion = pam.verify_assertion_signature(auth_data,
-                                                        idp_metadata)
 
-    assert etree.tostring(verified_assertion) == verified_assertion_expected
+@pytest.mark.parametrize(
+    "idp_metadata, assertion_expected, raise_expected",
+    [
+        (
+            os.path.join(data_dir, "idp_signed_metadata_demo1.xml"),
+            os.path.join(data_dir, "verified_assertion_response.xml"),
+            does_not_raise()
+        ),
+        (
+            os.path.join(data_dir, "idp_metadata_multi_signing_certs.xml"),
+            "",
+            pytest.raises(SystemExit)
+        ),
+        (
+            os.path.join(data_dir, "idp_not_exist.xml"),
+            "",
+            pytest.raises((InvalidSignature,
+                           InvalidDigest,
+                           InvalidCertificate,
+                           InvalidInput,
+                           SystemExit))
+        )
+    ],
+    ids=[
+            "Signature OK",
+            "Signature BAD",
+            "Signature Not Found"
+        ]
+)
+def test_verify_assertion_signature(idp_metadata,
+                                    assertion_expected,
+                                    raise_expected):
+    try:
+        with open(assertion_expected, "rb") as f:
+            assertion_expected = f.read()
+    except IOError:
+        pass
+
+    with raise_expected:
+        verified_assertion = pam.verify_assertion_signature(auth_data,
+                                                            idp_metadata)
+        assert etree.tostring(verified_assertion) == assertion_expected
+
+    assert True
