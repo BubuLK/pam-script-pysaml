@@ -4,26 +4,26 @@
 The environment variables passed by pam-script onto the script
 (all will exist but some may be null if not applicable):
 
-PAM_SERVICE	 - the application that's invoking the PAM stack
-PAM_TYPE       - the module-type (e.g. auth_data,account,session,password)
-PAM_USER	     - the user being authenticated into
-PAM_RUSER	     - the remote user, the user invoking the application
-PAM_RHOST	     - remote host
-PAM_TTY		 - the controlling tty
-PAM_AUTHTOK	 - password in readable text
-PAM_OLDAUTHTOK - old password in readable text
+PAM_SERVICE	    - the application that's invoking the PAM stack
+PAM_TYPE        - the module-type (e.g. auth_data,account,session,password)
+PAM_USER	    - the user being authenticated into
+PAM_RUSER	    - the remote user, the user invoking the application
+PAM_RHOST	    - remote host
+PAM_TTY		    - the controlling tty
+PAM_AUTHTOK	    - password in readable text (SAML Assertion)
+PAM_OLDAUTHTOK  - old password in readable text
 
-Id addition the pam_script.so arguments in the pam.conf will be passed
-on the command line, which can be used to modify the script behavior.
+Id addition the pam-script arguments configured in the pam.conf will be
+passed on the command line and can be used to modify the script behavior.
 
-dir               - installation dir
-grace             - time 'skew' allowing the validation (in seconds)
-check_timeframe   - validates the SAML assertion if expired (True/False)
-idp               - trusted IdPs metadata file (CSV multi-value)
-log_level         - logging severity
-only_from         - trusted IdPs host names (CSV multi-value)
-trusted_sp        - entityID of trusted SP
-user_id           - Attribute element representing validated username
+dir             - installation dir
+grace           - time 'skew' allowing the validation (in seconds)
+check_timeframe - validates the SAML assertion if expired (True/False)
+idp             - trusted IdPs metadata file (CSV multi-value)
+log_level       - logging severity
+only_from       - trusted IdPs host names (CSV multi-value)
+trusted_sp      - entityID of trusted SP
+user_id         - Attribute element representing validated username
 """
 
 import os
