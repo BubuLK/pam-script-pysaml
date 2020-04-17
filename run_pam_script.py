@@ -29,7 +29,7 @@ os.environ['PAM_RUSER'] = 'test'
 os.environ['PAM_SERVICE'] = 'dovecot'
 os.environ['PAM_TTY'] = '/dev/null'
 os.environ['PAM_USER'] = 'test'
-os.environ['PAM_TYPE'] = 'auth_data'
+os.environ['PAM_TYPE'] = 'auth'
 
 with open(f"{data_dir}/signed_assertion_response.xml.base64", "r") as fh:
     os.environ['PAM_AUTHTOK'] = fh.read()

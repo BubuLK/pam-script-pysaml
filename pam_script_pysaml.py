@@ -5,7 +5,7 @@ The environment variables passed by pam-script onto the script
 (all will exist but some may be null if not applicable):
 
 PAM_SERVICE	    - the application that's invoking the PAM stack
-PAM_TYPE        - the module-type (e.g. auth_data,account,session,password)
+PAM_TYPE        - the module-type (e.g. auth,account,session,password)
 PAM_USER	    - the user being authenticated into
 PAM_RUSER	    - the remote user, the user invoking the application
 PAM_RHOST	    - remote host
@@ -387,7 +387,7 @@ def main():
 
     # Verify PAM_TYPE request
     pam_type = pam_params.get('PAM_TYPE')
-    if pam_type != 'auth_data':
+    if pam_type != 'auth':
         logger.error(f"Unsupported PAM_TYPE={pam_type} requested.")
         sys.exit(PAM_MODULE_UNKNOWN)
 
