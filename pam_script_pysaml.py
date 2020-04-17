@@ -306,8 +306,8 @@ def get_timestamps(etree_xml):
 def verify_timestamps(nb, nooa, grace):
     """Verify if given timeframe (including grace) is valid.
 
-    :param nb:
-    :param nooa:
+    :param nb: NotBefore Unix time
+    :param nooa: NotOnOrAfter Unix timestamp
     :param grace: grace/skew time period in seconds
     :return: True/False
     """
@@ -317,8 +317,7 @@ def verify_timestamps(nb, nooa, grace):
     now = int(time.time())
 
     logger.info(
-        f"SAML assertion validity: NB={time.ctime(nb)} "
-        f"NOOA={time.ctime(nooa)} (grace={grace}).")
+        f"SAML assertion validity: {nooa - nb}s (grace={grace}s).")
 
     if nb and nb > (now + grace):
         logger.error("SAML assertion timestamps verification "
