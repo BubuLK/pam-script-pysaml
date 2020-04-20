@@ -153,7 +153,7 @@ def get_pam_params(env, argv):
 
     env = select_dict_keys(env, pam_env)
 
-    argv = {k: v.replace('"', '').strip() for k, v in
+    argv = {k.strip(): v.replace('"', '').strip() for k, v in
             dict(map(lambda arg: arg.split('=', 1), argv)).items()}
     argv = select_dict_keys(dict(argv), pam_argv)
 
@@ -319,7 +319,7 @@ def verify_timestamps(nb, nooa, grace):
 
     logger.debug(
         f"SAML assertion validity: {timedelta(seconds=nooa - nb)} "
-        f"(grace={grace}s).")
+        f"(grace={timedelta(seconds=grace)}).")
 
     if nb and nb > (now + grace):
         logger.error("SAML assertion timestamps verification "
