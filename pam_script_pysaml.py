@@ -33,6 +33,7 @@ from distutils.util import strtobool
 
 import time
 import calendar
+from datetime import timedelta
 
 import zlib
 from base64 import b64decode
@@ -316,8 +317,9 @@ def verify_timestamps(nb, nooa, grace):
 
     now = int(time.time())
 
-    logger.info(
-        f"SAML assertion validity: {nooa - nb}s (grace={grace}s).")
+    logger.debug(
+        f"SAML assertion validity: {timedelta(seconds=nooa - nb)} "
+        f"(grace={grace}s).")
 
     if nb and nb > (now + grace):
         logger.error("SAML assertion timestamps verification "
