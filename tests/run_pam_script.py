@@ -5,6 +5,7 @@
 import sys
 import os
 
+sys.path.append('..')
 import pam_script_pysaml as pam
 
 data_dir = pam.__data_test_dir__
