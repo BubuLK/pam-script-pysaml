@@ -145,6 +145,7 @@ npm-debug.log
 
 # OS X metadata files
 *.DS_Store
+default.profraw
 
 # Local log/testing data/sources
 /data/

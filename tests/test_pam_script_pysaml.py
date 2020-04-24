@@ -2,19 +2,42 @@ import pytest
 from contextlib import nullcontext as does_not_raise
 
 import os
+import sys
 import pickle
+import typing
 
 import time
 
 from signxml import (XMLSigner, XMLVerifier,
                      InvalidInput, InvalidSignature,
                      InvalidCertificate, InvalidDigest)
-
 from lxml import etree
 
 import pam_script_pysaml as pam
 
 data_dir = pam.__data_test_dir__
+sys.argv = [
+    '',
+    'grace = 600',
+    'check_timeframe=True',
+    f'idp={data_dir}/idp_signed_metadata_demo1.xml, ',
+    'log_level=ERROR',
+    'only_from=127.0.0.1,::1,localhost',
+    'trusted_sp=https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php',
+    'user_id=uid'
+]
+
+os.environ['PAM_AUTHTOK'] = ''
+os.environ['PAM_RHOST'] = 'localhost'
+os.environ['PAM_RUSER'] = 'test'
+os.environ['PAM_SERVICE'] = 'dovecot'
+os.environ['PAM_TTY'] = '/dev/null'
+os.environ['PAM_USER'] = 'test'
+os.environ['PAM_TYPE'] = 'auth'
+
+with open(os.path.join(data_dir,
+                       "signed_assertion_response.xml.base64"), "r") as fh:
+    os.environ['PAM_AUTHTOK'] = fh.read()
 
 with open(os.path.join(data_dir,
                        "signed_assertion_response.xml"), "rb") as fh:
@@ -40,6 +63,38 @@ def test_select_dict_keys(dictionary, keys, expected):
 
 
 @pytest.mark.parametrize(
+    "env, argv, pam_params_expected",
+    [
+        (
+            {
+                'PAM_AUTHTOK': 'password',
+                'PAM_NOT_USED': 'not used'
+            },
+            [
+                'grace = 600',
+                'check_timeframe=True',
+                'idp="metadata.xml"',
+                'not_used = None'
+            ],
+            {
+                'PAM_AUTHTOK': 'password',
+                'grace': 600,
+                'check_timeframe': 1,
+                'idp': 'metadata.xml',
+                'log_level': 'WARNING',
+                'only_from': '127.0.0.1,::1',
+                'trusted_sp': '',
+                'user_id': 'uid'
+            }
+        )
+    ]
+)
+def test_get_pam_params(env, argv, pam_params_expected):
+    pam_params = pam.get_pam_params(env, argv)
+    assert pam_params == pam_params_expected
+
+
+@pytest.mark.parametrize(
     "rhost, only_from, ret_expected",
     [
         ('localhost', '127.0.0.1,::1,localhost', True),
@@ -55,9 +110,10 @@ def test_verify_only_from(rhost, only_from, ret_expected):
     "tree, trusted_sp, ret_expected",
     [
         (
-                root,
-                'https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php',
-                True),
+            root,
+            'https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php',
+            True
+        ),
         (root, 'https://wrong.ip.org', False),
         (root, '', True)
     ],
@@ -134,33 +190,32 @@ def test_iterate_certs(data, data_expected):
     "ts, nb_expected, nooa_expected, raise_expected",
     [
         (
-                'NotBefore="2014-03-31T00:36:46Z" '
-                'NotOnOrAfter="2023-10-02T05:57:16Z"',
-                1396226206,
-                1696226236,
-                does_not_raise()
+            'NotBefore="2014-03-31T00:36:46Z" '
+            'NotOnOrAfter="2023-10-02T05:57:16Z"',
+            1396226206,
+            1696226236,
+            does_not_raise()
         ),
         (
-                'NotBefore="2014-03-31T00:36:46Z" '
-                'NotOnOrAfter="2023-10-02T05:57:16Z"',
-                1396226206,
-                1696226236,
-                does_not_raise()
+            'NotBefore="2014-03-31T00:36:46Z" '
+            'NotOnOrAfter="2023-10-02T05:57:16Z"',
+            1396226206,
+            1696226236,
+            does_not_raise()
         ),
         (
-                'NotBefore="2014-03-31T00:36:46Z" '
-                'NotOnOrAfter="2023-10-02T05:57:16Z"',
-                1396226206,
-                1696226236,
-                does_not_raise()
+            'NotBefore="2014-03-31T00:36:46Z" '
+            'NotOnOrAfter="2023-10-02T05:57:16Z"',
+            1396226206,
+            1696226236,
+            does_not_raise()
         ),
         (
-                '', 0, 0, does_not_raise()
-
+            '', 0, 0, does_not_raise()
         ),
         (
-                'NotBefore="2014-03-31T00:36:46X"',
-                None, None, pytest.raises((ValueError, SystemExit))
+            'NotBefore="2014-03-31T00:36:46X"',
+            None, None, pytest.raises((ValueError, SystemExit))
         )
     ],
     ids=[
@@ -251,11 +306,8 @@ with open(
         (
             os.path.join(data_dir, "idp_not_exist.xml"),
             "",
-            pytest.raises((InvalidSignature,
-                           InvalidDigest,
-                           InvalidCertificate,
-                           InvalidInput,
-                           SystemExit))
+            pytest.raises((InvalidSignature, InvalidDigest, InvalidCertificate,
+                           InvalidInput, SystemExit))
         )
     ],
     ids=[
@@ -279,3 +331,9 @@ def test_verify_assertion_signature(idp_metadata,
         assert etree.tostring(verified_assertion) == assertion_expected
 
     assert True
+
+
+def test_main():
+    with pytest.raises(SystemExit) as exit_err:
+        pam.main()
+    assert exit_err.value.code == pam.PAM_SUCCESS

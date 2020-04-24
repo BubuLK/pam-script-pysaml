@@ -6,8 +6,9 @@ help: Makefile
 
 all: pytest			## Run pytest tests
 
-install-deps:		## Install Python requirements.txt
-	@pip3 install -r requirements.txt
+install-deps:		## Install Debian/Python dependencies
+	apt install zlib1g
+	pip3 install -r requirements.txt
 
 lint:				## Run Flake8/Pylint code analysis
 	python3 -m flake8

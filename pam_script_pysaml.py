@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Implements 'pam_script_auth' module for pam-script subsystem.
+"""Implements 'pam_script_auth' module for Unix pam-script subsystem.
 
 The environment variables passed by pam-script onto the script
 (all will exist but some may be null if not applicable):
@@ -94,19 +94,11 @@ def config_logging(severity):
         '%(asctime)s %(name)s (%(levelname)s): %(message)s',
         '%b %d %H:%M:%S')
 
-    # Main stream handler
+    # Main IOStream log handler
     log_stream_handler = logging.StreamHandler(stream=sys.stdout)
     log_stream_handler.setLevel(log_level)
     log_stream_handler.setFormatter(log_formatter)
     log.addHandler(log_stream_handler)
-
-    # Temporary file handler
-    log_file_handler = logging.FileHandler(
-        os.path.join(os.path.dirname(__file__),
-                     "log", f"{__pam_module_name__}.log"))
-    log_file_handler.setLevel(log_level)
-    log_file_handler.setFormatter(log_formatter)
-    log.addHandler(log_file_handler)
 
     return log
 
@@ -174,14 +166,24 @@ def get_pam_params(env, argv):
 
 
 def verify_only_from(pam_rhost, only_from):
-    """Verify 'only_from' response conditions."""
+    """Verify 'only_from' response conditions.
+
+    :param pam_rhost: received pam_rhost parameter
+    :param only_from: allowed host(s) from config file
+    :return: True/False
+    """
 
     return only_from and pam_rhost and \
         pam_rhost in [host.strip() for host in only_from.split(',')]
 
 
 def verify_trusted_sp(tree, trusted_sp=False):
-    """Verify trusted SP."""
+    """Verify 'trusted_sp' response conditions.
+
+    :param tree: SAML Assertion Audience element
+    :param trusted_sp: trusted_sp from config file
+    :return: True/False
+    """
 
     logger = logging.getLogger(__pam_module_name__)
 
@@ -262,7 +264,7 @@ def iterate_certs(data):
     """Iterate over all (entityID, x509cert) pairs.
 
     :param data: parsed IdP data
-    :return: entityID, cert
+    :return: entityID, x509cert
     """
 
     for idp in data:
@@ -378,7 +380,7 @@ def verify_assertion_signature(auth_data, idp_metadata):
 
 
 def main():
-    """Implements 'pam_script_auth' module for pam-script subsystem.
+    """Implements 'pam_script_auth' module for Unix pam-script subsystem.
 
     :return: PAM compatible exit code
     """

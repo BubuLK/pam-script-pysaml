@@ -3,5 +3,5 @@ lxml
 ciso8601
 
 pytest
-setuptools
 zlib
+
