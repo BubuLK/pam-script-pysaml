@@ -10,6 +10,8 @@ install-deps:		## Install Debian/Python dependencies
 	apt install zlib1g
 	pip3 install -r requirements.txt
 
+clean:				## Clean distribution
+	rm -rf .coverage htmlcov .pytest_cache __pycache__
 lint:				## Run Flake8/Pylint code analysis
 	python3 -m flake8
 	python3 -m pylint --rcfile=setup.cfg pam_script_pysaml.py
