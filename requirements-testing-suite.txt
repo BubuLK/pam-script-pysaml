@@ -1,0 +1,10 @@
+pytest
+pytest-cov
+
+flake8
+
+coverage
+pylint
+
+pyinstrument
+
