@@ -60,8 +60,8 @@ is not significant):
 * `log_level`: logging `<severity>`. Default: `WARNING`.
 * `only_from`: list of IP/host names which can authenticate
     (multiple CSV values allowed),
-* `trusted_sp`: entityID of SP which should be trusted. Any SP is allowed,
-    if none is given (not recommended),
+* `trusted_sp`: entityID of SP which should be trusted (multiple CSV values allowed).
+    If none is given (not recommended) any SP is allowed,
 * `userid`: name of SAML attribute which contains the username (login). Value
    of this attribute will be matched against the username passed. Default: `uid`,
 
