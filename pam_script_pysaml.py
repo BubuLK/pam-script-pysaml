@@ -22,7 +22,7 @@ check_timeframe - validates the SAML assertion if expired (True/False)
 idp             - trusted IdPs metadata file (CSV multi-value)
 log_level       - logging severity
 only_from       - trusted IdPs host names (CSV multi-value)
-trusted_sp      - entityID of trusted SP
+trusted_sp      - entityID of trusted SP (CSV multi-value)
 user_id         - Attribute element representing validated username
 """
 
@@ -178,23 +178,19 @@ def verify_only_from(pam_rhost, only_from):
 
 
 def verify_trusted_sp(tree, trusted_sp=False):
-    """Verify 'trusted_sp' response conditions.
+    """Verify 'trusted_sp' response condition.
 
     :param tree: SAML Assertion Audience element
-    :param trusted_sp: trusted_sp from config file
+    :param trusted_sp: trusted_sp's from config file
     :return: True/False
     """
 
-    logger = logging.getLogger(__pam_module_name__)
-
-    if not trusted_sp:
-        logger.warning(
-            "Unsecured configuration: no trusted_sp argument defined.")
-        return True
-
-    node = tree.find(
-        ".//saml:AudienceRestriction/saml:Audience", namespaces=ns)
-    return node is not None and node.text and node.text == trusted_sp
+    for sp in [sp.strip() for sp in trusted_sp.split(',')]:
+        node = tree.find(
+            ".//saml:AudienceRestriction/saml:Audience", namespaces=ns)
+        if node is not None and node.text and node.text == sp:
+            return sp
+    return False
 
 
 def decode_assertion(data):
@@ -405,16 +401,21 @@ def main():
     tree_verified = verify_assertion_signature(pam_params.get('PAM_AUTHTOK'),
                                                pam_params.get('idp'))
 
-    # Verify trusted SP
-    if verify_trusted_sp(tree_verified, pam_params['trusted_sp']):
-        logger.debug(
-            f"SAML assertion element Audience "
-            f"match trusted_sp={pam_params['trusted_sp']}.")
+    # Verify 'trusted_sp' response condition
+    if pam_params['trusted_sp'] is not None:
+        trusted_sp = verify_trusted_sp(tree_verified, pam_params['trusted_sp'])
+        if trusted_sp:
+            logger.debug(
+                f"SAML assertion element Audience "
+                f"match trusted_sp={trusted_sp}.")
+        else:
+            logger.error(
+                f"SAML assertion element Audience do not match "
+                f"any of trusted_sp={pam_params['trusted_sp']}.")
+            sys.exit(PAM_CRED_INSUFFICIENT)
     else:
-        logger.error(
-            f"SAML assertion element Audience "
-            f"do not match trusted_sp={pam_params['trusted_sp']}.")
-        sys.exit(PAM_CRED_INSUFFICIENT)
+        logger.warning(
+            "Unsecured configuration: no trusted_sp argument defined.")
 
     # Verify uid matching
     user_id = pam_params.get('user_id')
