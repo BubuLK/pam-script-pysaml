@@ -112,17 +112,29 @@ def test_verify_only_from(rhost, only_from, ret_expected):
         (
             root,
             'https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php',
-            'https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php'
+            True
         ),
         (
             root,
-            'https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php, XXX',
-            'https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php'
+            'https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php, '
+            'https://pitbulk.no-ip.org/newonelogin/demo1/metadata-fake.php',
+            True
+        ),
+        (
+            root,
+            'https://pitbulk.no-ip.org/newonelogin/demo1/metadata-fake1.php, '
+            'https://pitbulk.no-ip.org/newonelogin/demo1/metadata-fake2.php',
+            False
         ),
         (root, 'https://wrong.ip.org', False),
-        (root, '', False)
+        (root, '', True)
     ],
-    ids=["Trusted SP", "Multiple SPs", "Untrusted SP", "Trusted SP Missing"]
+    ids=[
+            "Trusted SP",
+            "Multiple SP OK",
+            "Multiple SP Missing",
+            "Untrusted SP",
+            "Trusted SP Missing"]
 )
 def test_verify_trusted_sp(tree, trusted_sp, ret_expected):
     assert pam.verify_trusted_sp(tree, trusted_sp) == ret_expected

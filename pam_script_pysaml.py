@@ -180,16 +180,31 @@ def verify_only_from(pam_rhost, only_from):
 def verify_trusted_sp(tree, trusted_sp=False):
     """Verify 'trusted_sp' response condition.
 
-    :param tree: SAML Assertion Audience element
-    :param trusted_sp: trusted_sp's from config file
+    :param tree: etree element object
+    :param trusted_sp: configured trusted_sp's
     :return: True/False
     """
 
+    logger = logging.getLogger(__pam_module_name__)
+
+    if not trusted_sp:
+        logger.warning(
+            "Unsecured configuration: no trusted_sp argument defined.")
+        return True
+
+    node = tree.find(
+        ".//saml:AudienceRestriction/saml:Audience", namespaces=ns)
+
     for sp in [sp.strip() for sp in trusted_sp.split(',')]:
-        node = tree.find(
-            ".//saml:AudienceRestriction/saml:Audience", namespaces=ns)
         if node is not None and node.text and node.text == sp:
-            return sp
+            logger.debug(
+                f"SAML assertion element AudienceRestriction "
+                f"match trusted_sp={sp}.")
+            return True
+
+    logger.error(
+        f"SAML assertion element AudienceRestriction do not match "
+        f"any trusted_sp={trusted_sp}.")
     return False
 
 
@@ -402,20 +417,10 @@ def main():
                                                pam_params.get('idp'))
 
     # Verify 'trusted_sp' response condition
-    if pam_params['trusted_sp'] is not None:
-        trusted_sp = verify_trusted_sp(tree_verified, pam_params['trusted_sp'])
-        if trusted_sp:
-            logger.debug(
-                f"SAML assertion element Audience "
-                f"match trusted_sp={trusted_sp}.")
-        else:
-            logger.error(
-                f"SAML assertion element Audience do not match "
-                f"any of trusted_sp={pam_params['trusted_sp']}.")
-            sys.exit(PAM_CRED_INSUFFICIENT)
-    else:
-        logger.warning(
-            "Unsecured configuration: no trusted_sp argument defined.")
+    trusted_sp = verify_trusted_sp(tree_verified, pam_params['trusted_sp'])
+
+    if not trusted_sp:
+        sys.exit(PAM_CRED_INSUFFICIENT)
 
     # Verify uid matching
     user_id = pam_params.get('user_id')

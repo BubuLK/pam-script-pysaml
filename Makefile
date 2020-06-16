@@ -7,7 +7,7 @@ help: Makefile
 all: pytest			## Run pytest tests
 
 install-deps:		## Install Debian/Python dependencies
-	apt install zlib1g
+	apt-get install --no-install-recommends zlib1g python3-pip python3-wheel python3-setuptools python3-openssl python3-lxml
 	pip3 install -r requirements.txt
 
 install-testing-suite:	## Install Python testing suite dependencies
@@ -30,4 +30,4 @@ coverage-html:		## Run pytest with coverage (HTML output)
 	python3 -m pytest -v --cov=. --cov-report=html
 
 pyinstrument:		## Run pyinstrument stack profiler
-	python3 -m pyinstrument  run_pam_script.py
+	python3 -m pyinstrument  tests/run_pam_script.py

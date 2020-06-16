@@ -20,7 +20,8 @@ sys.argv = [
     f'{data_dir}/idp_signed_metadata_demo1.xml "',
     'log_level=DEBUG',
     'only_from=127.0.0.1,::1,localhost',
-    'trusted_sp=https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php',
+    'trusted_sp=https://fake-sp/metadata.php, '
+    'https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php',
     'user_id=uid'
 ]
 
