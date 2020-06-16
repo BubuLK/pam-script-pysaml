@@ -8,20 +8,25 @@ validates SAML response assertion given as user password.
 Ensure you have met the following basic requirements:
 
 * any recent Unix-based system running,
-* PAM subsystem installed and configured,
+* PAM subsystem installed and configured (including `libpam-script`),
 * python 3.6+ installed.
 
 ### Installation
-(These instructions may vary depending on OS version and your configuration.)
+(These instructions may vary depending on OS version and your local configuration.)
 
 * clone this repository to any appropriate place (e.g. `/usr/share/libpam-script`):
     ```commandline
     git clone https://github.com/BubuLK/pam-script-pysaml
     ```
-* install OS dependencies, e.g. for Debian install `zlib` library:
+* install OS dependencies, e.g. for Debian install at least:
     ```commandline
-  apt install zlib1g-dev
+  apt-get install --no-install-recommends zlib1g python3-pip python3-wheel python3-setuptools python3-openssl python3
+  -lxml
     ```
+  or use supplied `Makefile`
+  ```commandline
+  make install-deps
+  
 * install Python dependencies:
     ```commandline
     pip3 install -r requirements.txt
@@ -72,7 +77,7 @@ is not significant):
   like this:
 
     ```
-    auth	required	pam_script.so dir=<dir> user_id=uid grace=900 [...]
+    auth	sufficient	pam_script.so dir=<dir> user_id=uid grace=900 [...]
     ```
 
 #### Logging
