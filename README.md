@@ -37,6 +37,10 @@ Ensure you have met the following basic requirements:
     ```
 * configure PAM system (see bellow).
 
+#### Security note
+Please keep the core modules (i.e. `signxml` and its dependencies) up-to-date
+to minimize any possible security flaws.
+
 ### Configuration
 #### Environment variables
 Passed by `pam-script` module as shell environment. All variables are defined,
