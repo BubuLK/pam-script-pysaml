@@ -8,7 +8,7 @@ PAM_SERVICE	    - the application that's invoking the PAM stack
 PAM_TYPE        - the module-type (e.g. auth,account,session,password)
 PAM_USER	    - the user being authenticated into
 PAM_RUSER	    - the remote user, the user invoking the application
-PAM_RHOST	    - remote host
+PAM_RHOST	    - the remote host
 PAM_TTY		    - the controlling tty
 PAM_AUTHTOK	    - password in readable text (SAML Assertion)
 PAM_OLDAUTHTOK  - old password in readable text
@@ -29,7 +29,6 @@ user_id         - Attribute element representing validated username
 import os
 import sys
 import logging
-from distutils.util import strtobool
 
 import time
 import calendar
@@ -154,11 +153,11 @@ def get_pam_params(env, argv):
     argv['grace'] = int(argv['grace'])
 
     argv.setdefault('check_timeframe', 'True')
-    argv['check_timeframe'] = strtobool(argv['check_timeframe'])
+    argv['check_timeframe'] = argv['check_timeframe']
 
     argv.setdefault('idp', '')
-    argv.setdefault('log_level', 'WARNING')
-    argv.setdefault('only_from', '127.0.0.1,::1')
+    argv.setdefault('log_level', 'ERROR')
+    argv.setdefault('only_from', 'localhost,127.0.0.1,::1')
     argv.setdefault('trusted_sp', '')
     argv.setdefault('user_id', 'uid')
 
