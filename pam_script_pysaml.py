@@ -176,7 +176,7 @@ def verify_only_from(pam_rhost, only_from):
         pam_rhost in [host.strip() for host in only_from.split(',')]
 
 
-def verify_trusted_sp(tree, trusted_sp=False):
+def verify_trusted_sp(tree, trusted_sp=''):
     """Verify 'trusted_sp' response condition.
 
     :param tree: etree element object
