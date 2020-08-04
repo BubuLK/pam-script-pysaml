@@ -4,7 +4,6 @@ from contextlib import nullcontext as does_not_raise
 import os
 import sys
 import pickle
-import typing
 
 import time
 
@@ -16,35 +15,12 @@ from lxml import etree
 import pam_script_pysaml as pam
 
 data_dir = pam.__data_test_dir__
-sys.argv = [
-    '',
-    'grace = 600',
-    'check_timeframe=True',
-    f'idp={data_dir}/idp_signed_metadata_demo1.xml, ',
-    'log_level=ERROR',
-    'only_from=127.0.0.1,::1,localhost',
-    'trusted_sp=https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php',
-    'user_id=uid'
-]
-
-os.environ['PAM_AUTHTOK'] = ''
-os.environ['PAM_RHOST'] = 'localhost'
-os.environ['PAM_RUSER'] = 'test'
-os.environ['PAM_SERVICE'] = 'dovecot'
-os.environ['PAM_TTY'] = '/dev/null'
-os.environ['PAM_USER'] = 'test'
-os.environ['PAM_TYPE'] = 'auth'
-
-with open(os.path.join(data_dir,
-                       "signed_assertion_response.xml.base64"), "r") as fh:
-    os.environ['PAM_AUTHTOK'] = fh.read()
 
 with open(os.path.join(data_dir,
                        "signed_assertion_response.xml"), "rb") as fh:
     root = etree.parse(fh).getroot()
 
 test_data_xml = b"<Test></Test>"
-
 test_data_dict = [
     ({1: 1, 2: 2, 3: 3}, [1, 3], {1: 1, 3: 3}),
     ({1: 1, 2: 2, 3: 3}, [1, 4], {1: 1}),
@@ -79,10 +55,10 @@ def test_select_dict_keys(dictionary, keys, expected):
             {
                 'PAM_AUTHTOK': 'password',
                 'grace': 600,
-                'check_timeframe': 1,
+                'check_timeframe': 'True',
                 'idp': 'metadata.xml',
-                'log_level': 'WARNING',
-                'only_from': '127.0.0.1,::1',
+                'log_level': 'ERROR',
+                'only_from': 'localhost,127.0.0.1,::1',
                 'trusted_sp': '',
                 'user_id': 'uid'
             }
@@ -348,6 +324,30 @@ def test_verify_assertion_signature(idp_metadata,
         assert etree.tostring(verified_assertion) == assertion_expected
 
     assert True
+
+
+sys.argv = [
+    '',
+    'grace = 600',
+    'check_timeframe=True',
+    f'idp={data_dir}/idp_signed_metadata_demo1.xml, ',
+    'log_level=WARNING',
+    'only_from=localhost,127.0.0.1,::1',
+    'trusted_sp=https://pitbulk.no-ip.org/newonelogin/demo1/metadata.php',
+    'user_id=uid'
+]
+
+os.environ['PAM_AUTHTOK'] = ''
+os.environ['PAM_RHOST'] = 'localhost'
+os.environ['PAM_RUSER'] = 'test'
+os.environ['PAM_SERVICE'] = 'dovecot'
+os.environ['PAM_TTY'] = '/dev/null'
+os.environ['PAM_USER'] = 'test'
+os.environ['PAM_TYPE'] = 'auth'
+
+with open(os.path.join(data_dir,
+                       "signed_assertion_response.xml.base64"), "r") as fh:
+    os.environ['PAM_AUTHTOK'] = fh.read()
 
 
 def test_main():

@@ -266,7 +266,6 @@ def parse_idp_metadata(idp_metadata_file):
                 ".//ds:KeyInfo/ds:X509Data/ds:X509Certificate",
                 namespaces=ns).text.split()))
         data['x509cert'] = certs
-
     return data
 
 
@@ -349,13 +348,13 @@ def verify_assertion_signature(auth_data, idp_metadata):
 
     :param auth_data: encoded SAML assertion
     :param idp_metadata: IdP metadata
-    :return: verified assertion tree element
+    :return: verified_assertion tree element
     """
 
     logger = logging.getLogger(__pam_module_name__)
 
     assertion = decode_assertion(auth_data)
-    verified_assertion = b''
+    verified_assertion = None
 
     # Extract IdPs signing certificates
     idp_data = []
@@ -367,7 +366,7 @@ def verify_assertion_signature(auth_data, idp_metadata):
             verified_assertion = XMLVerifier().verify(
                 assertion,
                 x509_cert=cert,
-                validate_schema=True)
+                validate_schema=True).signed_xml
             logger.debug(f"SAML assertion signature verified for "
                          f"IdP entityID={entity}.")
             break
@@ -375,13 +374,11 @@ def verify_assertion_signature(auth_data, idp_metadata):
                 InvalidDigest,
                 InvalidCertificate,
                 InvalidInput) as assertion_verify_err:
-            logger.warning(
+            logger.debug(
                 f"SAML assertion signature verification error for IdP "
                 f"entityID={entity}: {assertion_verify_err}.")
 
-    if verified_assertion:
-        verified_assertion = verified_assertion.signed_xml
-    else:
+    if verified_assertion is None:
         logger.error(
             "SAML assertion signatures can not be verified: "
             "no valid signature found.")
