@@ -3,4 +3,4 @@ lxml
 ciso8601
 
 pytest
-zlib
+# zlib
