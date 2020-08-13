@@ -3,6 +3,8 @@ This package implements `pam_auth_script` for
 [`pam-script`](https://manpages.debian.org/testing/libpam-script/pam-script.7.en.html) module. Module
 validates SAML response assertion given as user password.
 
+### Caution (2020/08)
+This package is no more maintained and used in production!
 
 ### Prerequisites
 Ensure you have met the following basic requirements:
@@ -20,8 +22,7 @@ Ensure you have met the following basic requirements:
     ```
 * install OS dependencies, e.g. for Debian install at least:
     ```commandline
-  apt-get install --no-install-recommends zlib1g python3-pip python3-wheel python3-setuptools python3-openssl python3
-  -lxml
+  apt-get install --no-install-recommends zlib1g python3-pip python3-wheel python3-setuptools python3-openssl python3-lxml
     ```
   or use supplied `Makefile`
   ```commandline
