@@ -8,7 +8,7 @@ PAM_SERVICE	    - the application that's invoking the PAM stack
 PAM_TYPE        - the module-type (e.g. auth,account,session,password)
 PAM_USER	    - the user being authenticated into
 PAM_RUSER	    - the remote user, the user invoking the application
-PAM_RHOST	    - remote host
+PAM_RHOST	    - the remote host
 PAM_TTY		    - the controlling tty
 PAM_AUTHTOK	    - password in readable text (SAML Assertion)
 PAM_OLDAUTHTOK  - old password in readable text
@@ -29,7 +29,6 @@ user_id         - Attribute element representing validated username
 import os
 import sys
 import logging
-from distutils.util import strtobool
 
 import time
 import calendar
@@ -154,11 +153,11 @@ def get_pam_params(env, argv):
     argv['grace'] = int(argv['grace'])
 
     argv.setdefault('check_timeframe', 'True')
-    argv['check_timeframe'] = strtobool(argv['check_timeframe'])
+    argv['check_timeframe'] = argv['check_timeframe']
 
     argv.setdefault('idp', '')
-    argv.setdefault('log_level', 'WARNING')
-    argv.setdefault('only_from', '127.0.0.1,::1')
+    argv.setdefault('log_level', 'ERROR')
+    argv.setdefault('only_from', 'localhost,127.0.0.1,::1')
     argv.setdefault('trusted_sp', '')
     argv.setdefault('user_id', 'uid')
 
@@ -177,7 +176,7 @@ def verify_only_from(pam_rhost, only_from):
         pam_rhost in [host.strip() for host in only_from.split(',')]
 
 
-def verify_trusted_sp(tree, trusted_sp=False):
+def verify_trusted_sp(tree, trusted_sp=''):
     """Verify 'trusted_sp' response condition.
 
     :param tree: etree element object
@@ -267,7 +266,6 @@ def parse_idp_metadata(idp_metadata_file):
                 ".//ds:KeyInfo/ds:X509Data/ds:X509Certificate",
                 namespaces=ns).text.split()))
         data['x509cert'] = certs
-
     return data
 
 
@@ -350,13 +348,13 @@ def verify_assertion_signature(auth_data, idp_metadata):
 
     :param auth_data: encoded SAML assertion
     :param idp_metadata: IdP metadata
-    :return: verified assertion tree element
+    :return: verified_assertion tree element
     """
 
     logger = logging.getLogger(__pam_module_name__)
 
     assertion = decode_assertion(auth_data)
-    verified_assertion = b''
+    verified_assertion = None
 
     # Extract IdPs signing certificates
     idp_data = []
@@ -368,7 +366,7 @@ def verify_assertion_signature(auth_data, idp_metadata):
             verified_assertion = XMLVerifier().verify(
                 assertion,
                 x509_cert=cert,
-                validate_schema=True)
+                validate_schema=True).signed_xml
             logger.debug(f"SAML assertion signature verified for "
                          f"IdP entityID={entity}.")
             break
@@ -376,13 +374,11 @@ def verify_assertion_signature(auth_data, idp_metadata):
                 InvalidDigest,
                 InvalidCertificate,
                 InvalidInput) as assertion_verify_err:
-            logger.warning(
+            logger.debug(
                 f"SAML assertion signature verification error for IdP "
                 f"entityID={entity}: {assertion_verify_err}.")
 
-    if verified_assertion:
-        verified_assertion = verified_assertion.signed_xml
-    else:
+    if verified_assertion is None:
         logger.error(
             "SAML assertion signatures can not be verified: "
             "no valid signature found.")
